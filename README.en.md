@@ -139,7 +139,7 @@ Contributions for new operator implementations or optimizations are welcome! Con
 
 ## License
 
-This project is licensed under [License Type].
+This project is licensed under Apache 2.0.
 
 ## Support
 
