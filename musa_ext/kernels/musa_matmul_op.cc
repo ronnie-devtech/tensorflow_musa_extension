@@ -1,12 +1,12 @@
-#include <mudnn.h>
-
-#include "tensorflow/core/framework/bfloat16.h"
-#include "tensorflow/core/framework/common_shape_fns.h"
-#include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/register_types.h"
-#include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/util/matmul_bcast.h"
+#include "tensorflow/core/framework/bfloat16.h"
+
+#include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/core/framework/common_shape_fns.h"
+#include <mudnn.h>
 #include "utils_op.h"
 
 namespace tensorflow {
@@ -47,15 +47,15 @@ class MusaMatMulOp : public MusaOpKernel {
   }
 
   void Compute(OpKernelContext* ctx) override {
-    // fprintf(stderr, ">>> [MUSA_TRACE_AUTO] %s\n", name().c_str());
+    //fprintf(stderr, ">>> [MUSA_TRACE_AUTO] %s\n", name().c_str());
     const Tensor& in0 = ctx->input(0);
     const Tensor& in1 = ctx->input(1);
 
     MatMulBCast bcast(in0.shape().dim_sizes(), in1.shape().dim_sizes());
     OP_REQUIRES(ctx, bcast.IsValid(),
-                errors::InvalidArgument(
-                    "Incompatible shapes: ", in0.shape().DebugString(), " vs ",
-                    in1.shape().DebugString()));
+                errors::InvalidArgument("Incompatible shapes: ",
+                                        in0.shape().DebugString(), " vs ",
+                                        in1.shape().DebugString()));
 
     int64 d0 = in0.dim_size(in0.dims() - 2);
     int64 d1 = in0.dim_size(in0.dims() - 1);
@@ -68,8 +68,7 @@ class MusaMatMulOp : public MusaOpKernel {
     int64 k_check = trans_b_ ? d3 : d2;
 
     OP_REQUIRES(ctx, k == k_check,
-                errors::InvalidArgument(
-                    "Matrix size-incompatible: In[0] mismatch In[1]"));
+                errors::InvalidArgument("Matrix size-incompatible: In[0] mismatch In[1]"));
 
     TensorShape out_shape = bcast.output_batch_shape();
     out_shape.AddDim(m);
@@ -94,7 +93,8 @@ class MusaMatMulOp : public MusaOpKernel {
       if (t.dims() == 2) {
         int64_t rows = t.dim_size(0);
         int64_t cols = t.dim_size(1);
-        mt.SetNdInfo({1, rows, cols}, {rows * cols, cols, 1});
+        mt.SetNdInfo({1, rows, cols},
+                     {rows * cols, cols, 1});
       }
     };
 
@@ -103,10 +103,9 @@ class MusaMatMulOp : public MusaOpKernel {
     FixToBatchFormat(mt_out, *out);
 
     auto status = matmul_op.Run(handle, mt_out, mt_a, mt_b);
-
+    
     OP_REQUIRES(ctx, status == ::musa::dnn::Status::SUCCESS,
-                errors::Internal("MUSA MatMul execution failed. Status: ",
-                                 (int)status));
+                errors::Internal("MUSA MatMul execution failed. Status: ", (int)status));
   }
 
  private:
@@ -114,31 +113,35 @@ class MusaMatMulOp : public MusaOpKernel {
   bool trans_b_ = false;
 };
 
-#define REGISTER_MATMUL(TYPE)                                  \
-  REGISTER_KERNEL_BUILDER(                                     \
-      Name("MatMul").Device("MUSA").TypeConstraint<TYPE>("T"), \
-      MusaMatMulOp<TYPE>);
+#define REGISTER_MATMUL(TYPE)                                   \
+  REGISTER_KERNEL_BUILDER(Name("MatMul")                        \
+                              .Device("MUSA")                   \
+                              .TypeConstraint<TYPE>("T"),       \
+                          MusaMatMulOp<TYPE>);
 
 REGISTER_MATMUL(float);
 REGISTER_MATMUL(Eigen::half);
 REGISTER_MATMUL(bfloat16);
 
-#define REGISTER_BATCH_MATMUL(TYPE)                                   \
-  REGISTER_KERNEL_BUILDER(                                            \
-      Name("BatchMatMulV2").Device("MUSA").TypeConstraint<TYPE>("T"), \
-      MusaMatMulOp<TYPE>);
+#define REGISTER_BATCH_MATMUL(TYPE)                             \
+  REGISTER_KERNEL_BUILDER(Name("BatchMatMulV2")                 \
+                              .Device("MUSA")                   \
+                              .TypeConstraint<TYPE>("T"),       \
+                          MusaMatMulOp<TYPE>);
 
 REGISTER_BATCH_MATMUL(float);
 REGISTER_BATCH_MATMUL(Eigen::half);
-REGISTER_BATCH_MATMUL(bfloat16);
+REGISTER_BATCH_MATMUL(bfloat16); 
 
-#define REGISTER_MUSA_MATMUL(TYPE)                                        \
-  REGISTER_KERNEL_BUILDER(                                                \
-      Name("MusaMatMul").Device("MUSA").TypeConstraint<TYPE>("T"),        \
-      MusaMatMulOp<TYPE>);                                                \
-  REGISTER_KERNEL_BUILDER(                                                \
-      Name("MusaBatchMatMulV2").Device("MUSA").TypeConstraint<TYPE>("T"), \
-      MusaMatMulOp<TYPE>);
+#define REGISTER_MUSA_MATMUL(TYPE)                              \
+  REGISTER_KERNEL_BUILDER(Name("MusaMatMul")                    \
+                              .Device("MUSA")                   \
+                              .TypeConstraint<TYPE>("T"),       \
+                          MusaMatMulOp<TYPE>);                  \
+  REGISTER_KERNEL_BUILDER(Name("MusaBatchMatMulV2")            \
+                              .Device("MUSA")                   \
+                              .TypeConstraint<TYPE>("T"),       \
+                          MusaMatMulOp<TYPE>);
 
 REGISTER_MUSA_MATMUL(float);
 REGISTER_MUSA_MATMUL(Eigen::half);
@@ -150,3 +153,4 @@ REGISTER_MUSA_MATMUL(bfloat16);
 
 }  // namespace musa
 }  // namespace tensorflow
+

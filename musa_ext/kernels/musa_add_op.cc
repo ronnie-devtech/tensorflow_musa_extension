@@ -1,6 +1,6 @@
-#include "tensorflow/core/framework/bfloat16.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/register_types.h"
+#include "tensorflow/core/framework/bfloat16.h"
 #include "utils_op.h"
 
 namespace tensorflow {
@@ -21,10 +21,8 @@ class MusaAddOp : public MusaOpKernel {
     TensorShape output_shape;
 
     for (int i = 0; i < out_dims; ++i) {
-      int d0 =
-          (i < out_dims - dims0) ? 1 : in0.dim_size(i - (out_dims - dims0));
-      int d1 =
-          (i < out_dims - dims1) ? 1 : in1.dim_size(i - (out_dims - dims1));
+      int d0 = (i < out_dims - dims0) ? 1 : in0.dim_size(i - (out_dims - dims0));
+      int d1 = (i < out_dims - dims1) ? 1 : in1.dim_size(i - (out_dims - dims1));
 
       if (d0 == d1) {
         output_shape.AddDim(d0);
@@ -33,9 +31,9 @@ class MusaAddOp : public MusaOpKernel {
       } else if (d1 == 1) {
         output_shape.AddDim(d0);
       } else {
-        ctx->CtxFailure(errors::InvalidArgument(
-            "Incompatible shapes: ", in0.shape().DebugString(), " and ",
-            in1.shape().DebugString()));
+        ctx->CtxFailure(errors::InvalidArgument("Incompatible shapes: ",
+                                                in0.shape().DebugString(), " and ",
+                                                in1.shape().DebugString()));
         return;
       }
     }
@@ -43,8 +41,7 @@ class MusaAddOp : public MusaOpKernel {
     Tensor* out = nullptr;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &out));
 
-    if (in0.NumElements() == 0 || in1.NumElements() == 0 ||
-        output_shape.num_elements() == 0) {
+    if (in0.NumElements() == 0 || in1.NumElements() == 0 || output_shape.num_elements() == 0) {
       return;
     }
 
@@ -63,18 +60,15 @@ class MusaAddOp : public MusaOpKernel {
   }
 };
 
-#define REGISTER_MUSA_ADD(TYPE)                               \
-  REGISTER_KERNEL_BUILDER(                                    \
-      Name("AddV2").Device("MUSA").TypeConstraint<TYPE>("T"), \
-      MusaAddOp<TYPE>);                                       \
-  REGISTER_KERNEL_BUILDER(                                    \
-      Name("Add").Device("MUSA").TypeConstraint<TYPE>("T"), MusaAddOp<TYPE>);
+#define REGISTER_MUSA_ADD(TYPE)                                          \
+  REGISTER_KERNEL_BUILDER(Name("AddV2").Device("MUSA").TypeConstraint<TYPE>("T"), MusaAddOp<TYPE>); \
+  REGISTER_KERNEL_BUILDER(Name("Add").Device("MUSA").TypeConstraint<TYPE>("T"), MusaAddOp<TYPE>);
 
 REGISTER_MUSA_ADD(float);
 REGISTER_MUSA_ADD(int32);
 REGISTER_MUSA_ADD(int64);
-REGISTER_MUSA_ADD(Eigen::half);  // [新增] FP16 支持
-REGISTER_MUSA_ADD(bfloat16);     // [新增] BF16 支持
+REGISTER_MUSA_ADD(Eigen::half); // [新增] FP16 支持
+REGISTER_MUSA_ADD(bfloat16);    // [新增] BF16 支持
 
-}  // namespace musa
-}  // namespace tensorflow
+} // namespace musa
+} // namespace tensorflow

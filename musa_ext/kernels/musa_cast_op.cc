@@ -1,9 +1,9 @@
 /* Copyright @2020-2026 Moore Threads Technology Co. All rights reserved. */
 
+#include "utils_op.h" 
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/types.h"
-#include "utils_op.h"
 
 namespace tensorflow {
 namespace musa {
@@ -35,11 +35,11 @@ class MusaCastOp : public MusaOpKernel {
     // 对于相同类型的 Cast，使用 IDENTITY；不同类型使用 CAST
     mStatus m_status;
     if (external_src_dtype_ == external_dst_dtype_) {
-      m_status = op.SetMode(::musa::dnn::Unary::Mode::IDENTITY);
+        m_status = op.SetMode(::musa::dnn::Unary::Mode::IDENTITY);
     } else {
-      m_status = op.SetMode(::musa::dnn::Unary::Mode::CAST);
+        m_status = op.SetMode(::musa::dnn::Unary::Mode::CAST);
     }
-
+    
     OP_REQUIRES(ctx, m_status == mStatus::SUCCESS,
                 errors::Internal("muDNN Unary SetMode failed in Cast"));
 
@@ -48,14 +48,12 @@ class MusaCastOp : public MusaOpKernel {
     m_status = op.Run(h, out_mt, in_mt);
 
     if (m_status != mStatus::SUCCESS) {
-      LOG(ERROR) << "MUSA Cast Run failed! Src: "
-                 << DataTypeString(external_src_dtype_)
-                 << " -> Dst: " << DataTypeString(external_dst_dtype_)
-                 << " | Status: " << (int)m_status;
-
-      ctx->SetStatus(errors::Internal("MUSA Cast Run failed. Status code: ",
-                                      (int)m_status));
-      return;
+        LOG(ERROR) << "MUSA Cast Run failed! Src: " << DataTypeString(external_src_dtype_)
+                   << " -> Dst: " << DataTypeString(external_dst_dtype_)
+                   << " | Status: " << (int)m_status;
+        
+        ctx->SetStatus(errors::Internal("MUSA Cast Run failed. Status code: ", (int)m_status));
+        return;
     }
   }
 
@@ -65,11 +63,11 @@ class MusaCastOp : public MusaOpKernel {
 };
 
 // --- 广泛的类型注册 ---
-#define REGISTER_CAST_MUSA(SrcT, DstT)                       \
-  REGISTER_KERNEL_BUILDER(Name("Cast")                       \
-                              .Device(DEVICE_MTGPU)          \
-                              .TypeConstraint<SrcT>("SrcT")  \
-                              .TypeConstraint<DstT>("DstT"), \
+#define REGISTER_CAST_MUSA(SrcT, DstT) \
+  REGISTER_KERNEL_BUILDER(Name("Cast") \
+                          .Device(DEVICE_MTGPU) \
+                          .TypeConstraint<SrcT>("SrcT") \
+                          .TypeConstraint<DstT>("DstT"), \
                           MusaCastOp);
 
 // 数值类型互转
@@ -92,5 +90,7 @@ REGISTER_CAST_MUSA(float, float);
 REGISTER_CAST_MUSA(int32, int32);
 REGISTER_CAST_MUSA(int64, int64);
 
-}  // namespace musa
-}  // namespace tensorflow
+} // namespace musa
+} // namespace tensorflow
+
+

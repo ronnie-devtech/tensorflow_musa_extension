@@ -1,6 +1,6 @@
-#include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/register_types.h"
+#include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
 
 namespace tensorflow {
@@ -19,29 +19,28 @@ class MusaPlaceholderOp : public OpKernel {
 
   void Compute(OpKernelContext* ctx) override {
     // ！！！ 核心逻辑 ！！！
-
+    
     // 如果程序真的跑进了这个 Compute 函数，说明出大事了：
-    // 用户调用了 session.run()，但是忘了在 feed_dict 里给这个 placeholder
-    // 喂数据。
-
+    // 用户调用了 session.run()，但是忘了在 feed_dict 里给这个 placeholder 喂数据。
+    
     if (ctx->output_required(0)) {
       ctx->CtxFailure(errors::InvalidArgument(
-          "You must feed a value for placeholder tensor '", name(),
+          "You must feed a value for placeholder tensor '", name(), 
           "' with dtype ", DataTypeString(output_type(0))));
     }
-
+    
     // 没错，这里不需要调用 mudnn，不需要 allocate_output
     // 因为如果有数据喂进来，TF 框架层会在这个 Op 运行前就把 output 替换掉。
   }
 };
 
 // 2. 注册 Kernel
-// 我们告诉 TF：如果有人把 Placeholder 放在了 MUSA 设备上，请用这个 Kernel
-// (虽然它只是个报错复读机)
-#define REGISTER_PLACEHOLDER(TYPE)                                      \
-  REGISTER_KERNEL_BUILDER(                                              \
-      Name("Placeholder").Device("MUSA").TypeConstraint<TYPE>("dtype"), \
-      MusaPlaceholderOp<TYPE>);
+// 我们告诉 TF：如果有人把 Placeholder 放在了 MUSA 设备上，请用这个 Kernel (虽然它只是个报错复读机)
+#define REGISTER_PLACEHOLDER(TYPE)                                  \
+  REGISTER_KERNEL_BUILDER(Name("Placeholder")                       \
+                              .Device("MUSA")                       \
+                              .TypeConstraint<TYPE>("dtype"),       \
+                          MusaPlaceholderOp<TYPE>);
 
 REGISTER_PLACEHOLDER(float);
 REGISTER_PLACEHOLDER(double);

@@ -2,17 +2,15 @@
 #define TENSORFLOW_MUSA_MU1_DEVICE_MUSA_DEVICE_H_
 
 #pragma once
-#include <mublas.h>
 #include <mudnn.h>
+#include <mublas.h>
 #include <musa_runtime.h>
-
 #include <memory>  // 【关键：引入智能指针】
-
-#include "mudnn_base.h"
-#include "musa_stream.h"
 #include "tensorflow/core/framework/device.h"
 #include "tensorflow/core/framework/device_base.h"
 #include "tensorflow/stream_executor/stream.h"
+#include "musa_stream.h"
+#include "mudnn_base.h" 
 
 namespace tensorflow {
 namespace musa {
@@ -22,9 +20,7 @@ class MusaDeviceContext : public DeviceContext {
   explicit MusaDeviceContext(musaStream_t stream);
   ~MusaDeviceContext() override;
 
-  ::stream_executor::Stream* stream() const override {
-    return official_stream_;
-  }
+  ::stream_executor::Stream* stream() const override { return official_stream_; }
 
   void CopyCPUTensorToDevice(const Tensor* cpu_tensor, Device* device,
                              Tensor* device_tensor, StatusCallback done,
@@ -45,9 +41,7 @@ class MusaDevice : public Device {
   MusaDevice(Env* env, const DeviceAttributes& attributes, int device_id);
   ~MusaDevice() override;
 
-  const GpuDeviceInfo* tensorflow_gpu_device_info() const override {
-    return &gpu_device_info_;
-  }
+  const GpuDeviceInfo* tensorflow_gpu_device_info() const override { return &gpu_device_info_; }
   Status TryGetDeviceContext(DeviceContext** out_context) override;
   Allocator* GetAllocator(AllocatorAttributes attr) override;
   Status Sync() override;
@@ -61,7 +55,7 @@ class MusaDevice : public Device {
 
   ::musa::dnn::MemoryMaintainer GetMemMaintainer(
       std::function<::musa::dnn::MemoryHandler(size_t)> func) {
-    return func;
+    return func; 
   }
 
  private:
@@ -76,7 +70,7 @@ class MusaDevice : public Device {
   mublasHandle_t mublas_handle_;
 };
 
-}  // namespace musa
-}  // namespace tensorflow
+} // namespace musa
+} // namespace tensorflow
 
 #endif

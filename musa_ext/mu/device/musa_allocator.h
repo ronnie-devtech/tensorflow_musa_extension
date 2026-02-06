@@ -1,12 +1,10 @@
 #ifndef TENSORFLOW_MUSA_ALLOCATOR_H_
 #define TENSORFLOW_MUSA_ALLOCATOR_H_
 
-#include <musa_runtime.h>
-
-#include <algorithm>
-#include <string>
-
 #include "tensorflow/core/framework/allocator.h"
+#include <musa_runtime.h>
+#include <string>
+#include <algorithm> 
 
 namespace tensorflow {
 namespace musa {
@@ -15,7 +13,7 @@ class MusaRawAllocator : public Allocator {
  public:
   // 1. 构造函数
   explicit MusaRawAllocator(int device_id) : device_id_(device_id) {}
-
+  
   ~MusaRawAllocator() override = default;
 
   std::string Name() override { return "musa_raw_allocator"; }
@@ -27,13 +25,12 @@ class MusaRawAllocator : public Allocator {
     musaSetDevice(device_id_);
 
     size_t target_alignment = std::max((size_t)256, alignment);
-    size_t alloc_bytes = (num_bytes + target_alignment - 1) / target_alignment *
-                         target_alignment;
-    alloc_bytes += 256;
+    size_t alloc_bytes = (num_bytes + target_alignment - 1) / target_alignment * target_alignment;
+    alloc_bytes += 256; 
 
     void* ptr = nullptr;
     if (musaMalloc(&ptr, alloc_bytes) != musaSuccess) {
-      return nullptr;
+        return nullptr;
     }
     return ptr;
   }
@@ -48,9 +45,9 @@ class MusaRawAllocator : public Allocator {
 
  private:
   // 【刚才缺少的行】：定义成员变量
-  int device_id_;
+  int device_id_; 
 };
 
-}  // namespace musa
-}  // namespace tensorflow
+} // namespace musa
+} // namespace tensorflow
 #endif
