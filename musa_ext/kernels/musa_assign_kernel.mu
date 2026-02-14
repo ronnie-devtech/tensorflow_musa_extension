@@ -35,7 +35,7 @@ void LaunchAssignCopy(const T* src, T* dst, int64_t n, musaStream_t stream) {
   }
 }
 
-// 显式实例化（只覆盖你要求的 4 种类型）
+// 显式实例化
 template void LaunchAssignCopy<float>(const float*, float*, int64_t, musaStream_t);
 template void LaunchAssignCopy<double>(const double*, double*, int64_t, musaStream_t);
 template void LaunchAssignCopy<Eigen::half>(const Eigen::half*, Eigen::half*, int64_t, musaStream_t);
