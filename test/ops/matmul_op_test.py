@@ -101,6 +101,11 @@ class MatMulOpTest(MUSATestCase):
     for dtype in [tf.float32]:
       self._test_matmul([3, 4, 5], [3, 5, 6], dtype=dtype)
 
+  
+  def testMatMulBatch4D(self):
+    """Batch matrix multiplication."""
+    for dtype in [tf.float32]:
+      self._test_matmul([1, 1, 1, 32], [1, 1, 10, 32], transpose_b=True, dtype=dtype)
 
 if __name__ == "__main__":
   tf.test.main()
