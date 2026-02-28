@@ -15,10 +15,15 @@ class MusaReshapeOp : public MusaOpKernel {
   explicit MusaReshapeOp(OpKernelConstruction* context)
       : MusaOpKernel(context) {}
 
+  // Reshape is a metadata-only operation (zero copy when possible)
+  // Marking as inexpensive enables TensorFlow executor inline scheduling
+  bool IsExpensive() override { return false; }
+
   void Compute(OpKernelContext* ctx) override {
     const Tensor& input = ctx->input(0);
     const Tensor& sizes = ctx->input(1);
 
+    // 解析目标 shape
     TensorShape shape;
     int64 unknown_index = -1;
     int64 product = 1;
@@ -85,46 +90,23 @@ class MusaReshapeOp : public MusaOpKernel {
                                         " elements, but target shape has ",
                                         shape.num_elements(), " elements."));
 
-    // OPTIMIZATION: Try buffer forwarding first to avoid copy
-    // Reshape doesn't change data, only metadata
-    if (input.NumElements() > 0) {
-      // Try to forward the input buffer to output
-      // This avoids memory copy when possible
-      Tensor* output = nullptr;
+    // try buffer forwarding (zero-copy) first
+    Tensor* output = nullptr;
+    OP_REQUIRES_OK(
+        ctx, ctx->forward_input_or_allocate_output({0}, 0, shape, &output));
 
-      // Check if we can use set_output (same underlying buffer)
-      if (shape.num_elements() == input.NumElements()) {
-        // Use the input tensor's buffer directly
-        Tensor output_tensor(input.dtype());
-        if (output_tensor.CopyFrom(input, shape)) {
-          ctx->set_output(0, output_tensor);
-          return;
-        }
-      }
+    // copy data if forwarding failed (output and input point to different memory)
+    if (output->tensor_data().data() != input.tensor_data().data()) {
+      auto& handle = GetHandleByCtx(ctx);
+      musaStream_t stream =
+          reinterpret_cast<musaStream_t>(handle.GetStream());
 
-      // Fallback to forward_input_or_allocate_output
-      OP_REQUIRES_OK(
-          ctx, ctx->forward_input_or_allocate_output({0}, 0, shape, &output));
+      mStatus status = MusaMemcpyAsyncD2D(
+          const_cast<char*>(output->tensor_data().data()),
+          input.tensor_data().data(), input.TotalBytes(), stream);
 
-      if (output->NumElements() == 0) return;
-
-      // If forwarding didn't work (output is new allocation), copy data
-      if (output->tensor_data().data() != input.tensor_data().data()) {
-        auto& handle = GetHandleByCtx(ctx);
-        musaStream_t stream =
-            reinterpret_cast<musaStream_t>(handle.GetStream());
-
-        mStatus status = MusaMemcpyAsyncD2D(
-            const_cast<char*>(output->tensor_data().data()),
-            input.tensor_data().data(), input.TotalBytes(), stream);
-
-        OP_REQUIRES(ctx, status == mStatus::SUCCESS,
-                    errors::Internal("MUSA Reshape: async copy failed"));
-      }
-    } else {
-      // Empty tensor - just allocate output
-      Tensor* output = nullptr;
-      OP_REQUIRES_OK(ctx, ctx->allocate_output(0, shape, &output));
+      OP_REQUIRES(ctx, status == mStatus::SUCCESS,
+                  errors::Internal("MUSA Reshape: async copy failed"));
     }
   }
 };
