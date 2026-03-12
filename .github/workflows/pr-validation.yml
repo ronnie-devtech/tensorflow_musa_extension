@@ -32,7 +32,7 @@ jobs:
       - name: Install MUSA-aware TensorFlow
         run: |
           pip install --upgrade pip
-          pip install tensorflow==2.4.0  # 或你的定制版本
+          pip install tensorflow==2.6.0  # 或你的定制版本
           pip install -e .  # 安装当前 repo（含 MUSA 扩展）
  
       - name: Verify MUSA device availability
