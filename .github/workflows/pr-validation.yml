@@ -25,8 +25,10 @@ jobs:
       # 使用 github.run_id 创建独立目录，防止多次 PR 测试时的代码互相冲突
       - name: Copy code into running container
         run: |
+          PR_PATH="/tmp/pr_test_${{ github.run_id }}"
           docker exec Runner mkdir -p /tmp/pr_test_${{ github.run_id }}
           docker cp . Runner:/tmp/pr_test_${{ github.run_id }}
+          echo "✅ Code copied to container path: $PR_PATH"
  
       # 4. 进入容器并验证 MUSA 设备
       - name: Verify MUSA device availability
